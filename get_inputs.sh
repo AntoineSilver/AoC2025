@@ -9,7 +9,11 @@ NBDAY=12
 DAY=1
 while [ $DAY -le $NBDAY ]; do
     echo "Downloading input for Day $DAY..."
-    curl -s -b "session=${SESSION_COOKIE}" "https://adventofcode.com/${YEAR}/day/${DAY}/input" -o "./input/Day${DAY}.txt"
+    if [ $DAY -le 9 ]; then
+        curl -s -b "session=${SESSION_COOKIE}" "https://adventofcode.com/${YEAR}/day/${DAY}/input" -o "./input/Day0${DAY}.txt"
+    else
+        curl -s -b "session=${SESSION_COOKIE}" "https://adventofcode.com/${YEAR}/day/${DAY}/input" -o "./input/Day${DAY}.txt"
+    fi
     if [ $? -eq 0 ]; then
         echo "Successfully downloaded input for Day $DAY."
     else
