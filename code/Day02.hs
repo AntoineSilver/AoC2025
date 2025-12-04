@@ -49,21 +49,6 @@ _sumFakeIDs (Range n m)
         a  = n `div` kk
         b  = m `div` kk
         a'  = if (n `mod` kk) == 0 then a else a+1
-
-testInput :: [Range]
-testInput = [ Range 11 22,
-              Range 95 115,
-              Range 998 1012,
-              Range 1188511880 1188511890,
-              Range 222220 222224,
-              Range 1698522 1698528,
-              Range 446443 446449,
-              Range 38593856 38593862,
-              Range 565653 565659,
-              Range 824824821 824824827,
-              Range 2121212118 2121212124]
-
-testAll = 4174379265
 -- Number of Fake IDs in a range ends here
 
 -- [[file:Day02.org::Solution 1][Solution 1]]
