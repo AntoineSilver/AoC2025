@@ -1,0 +1,112 @@
+:PROPERTIES:
+:header-args:haskell: :session main :tangle Day01.hs :comments link
+:END:
+
+#+title: Day 01 of Advent of Code 2025
+#+autor: Antoine Guinchard
+#+date:<2025-12-01 Mon>
+
+
+[[https://adventofcode.com/2025/day/1][Link to Problem]]
+
+* Part 0: Setup
+
+#+name: Setup
+#+begin_src haskell
+import Data.List (foldl')
+#+end_src
+
+* Part 1
+** Parsing the input
+
+Let start by making the input machine-friendly. For that we can make a small
+data structure:
+#+name: Data structure for rotations
+#+begin_src haskell
+data Rotation = L Int | R Int deriving (Show)
+#+end_src
+
+We can define an application of a rotation as. It will be useful to have two
+versions for the rotation, one which takes into account the period of 100 and
+the other not:
+#+name: Rotations as Actions
+#+begin_src haskell
+rotate (L dx) x = x - dx
+rotate (R dx) x = x + dx
+
+rotateMod (L dx) x = (x - dx) `mod` 100
+rotateMod (R dx) x = (x + dx) `mod` 100
+#+end_src
+
+
+We do not write a full parser, instead we just assume that the input is
+correctly formatted (if it is not, we will just crash) and just use the =read=
+function:
+#+name: Read Input
+#+begin_src haskell
+readInput :: IO [Rotation]
+readInput = do
+    str <- readFile "../input/Day01.txt"
+    return $ f <$> lines str
+  where
+    f :: String -> Rotation
+    f ('L' : rs) = L (read rs)
+    f ('R' : rs) = R (read rs)
+#+end_src
+
+** Read Number of Zeros
+
+Given a list of rotation, we can then turn them first into dial positions:
+#+name: Dial Positions
+#+begin_src haskell
+getPositions :: [Rotation] -> [Int]
+getPositions = foldl' f [50]
+  where
+    f :: [Int] -> Rotation -> [Int]
+    f pos rot = pos ++ [rotateMod rot $ last pos]
+#+end_src
+
+Finally, we can count the number of zeros:
+#+name: Count Zeros
+#+begin_src haskell
+countZeros :: [Int] -> Int
+countZeros = length . filter (== 0)
+#+end_src
+
+Putting everything together, we get the solution of the first part of day 1!
+#+name: Solution 1
+#+begin_src haskell
+solution_1 :: IO Int
+solution_1 = countZeros . getPositions <$> readInput
+#+end_src
+
+* Part 2
+
+We need to make a new method to count clicks:
+#+name: New Count Zeros
+#+begin_src haskell
+countClicks :: [Rotation] -> Int
+countClicks rs = snd $ foldl' f (50, 0) rs
+  where
+    f :: (Int, Int) -> Rotation -> (Int, Int)
+    f (pos, clicks) r = (newpos `mod` 100, clicks + add_clicks)
+      where
+        newpos = rotate r pos
+        add_clicks
+            | newpos >= 100 = newpos `div` 100
+            | newpos <= 0 = (-newpos) `div` 100 + if pos == 0 then 0 else 1
+            | otherwise = 0
+#+end_src
+
+Here we fold across the list of rotation while keeping track both of the current
+position and the number of clicks we heard. We need to take some care into the
+fact that we can have rotations of more the 100! Furthermore negative rotations
+(i.e. left rotations) are a bit tricky since if the number becomes negative, we
+have already crossed 0 once, but if we start at 0 we do not cross it again.
+
+Using the new method to count clicks, getting the final answer is simple:
+#+name: Solution 1
+#+begin_src haskell
+solution_2 :: IO Int
+solution_2 = countClicks <$> readInput
+#+end_src
