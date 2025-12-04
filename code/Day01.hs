@@ -1,3 +1,5 @@
+module Day01 where
+
 -- [[file:Day01.org::Setup][Setup]]
 import Data.List (foldl')
 -- Setup ends here
@@ -17,7 +19,7 @@ rotateMod (R dx) x = (x + dx) `mod` 100
 -- [[file:Day01.org::Read Input][Read Input]]
 readInput :: IO [Rotation]
 readInput = do
-    str <- readFile "../input/Day01.txt"
+    str <- readFile "./input/Day01.txt"
     return $ f <$> lines str
   where
     f :: String -> Rotation

@@ -11,6 +11,10 @@
 
 * Part 0: Setup
 
+#+begin_src haskell :comments no
+module Day01 where
+#+end_src
+
 #+name: Setup
 #+begin_src haskell
 import Data.List (foldl')
@@ -46,7 +50,7 @@ function:
 #+begin_src haskell
 readInput :: IO [Rotation]
 readInput = do
-    str <- readFile "../input/Day01.txt"
+    str <- readFile "./input/Day01.txt"
     return $ f <$> lines str
   where
     f :: String -> Rotation
@@ -76,8 +80,8 @@ countZeros = length . filter (== 0)
 Putting everything together, we get the solution of the first part of day 1!
 #+name: Solution 1
 #+begin_src haskell
-solution_1 :: IO Int
-solution_1 = countZeros . getPositions <$> readInput
+solution_2 :: IO Int
+solution_2 = countClicks <$> readInput
 #+end_src
 
 * Part 2
