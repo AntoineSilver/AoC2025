@@ -1,0 +1,284 @@
+:PROPERTIES:
+:header-args:haskell: :session main :tangle Day02.hs :comments link
+:END:
+
+#+title: Day 02 of Advent of Code 2025
+#+autor: Antoine Guinchard
+#+date:<2025-12-02 Tue>
+
+
+[[https://adventofcode.com/2025/day/2][Link to Problem]]
+
+
+* Part 0: Setup
+
+#+begin_src haskell :comments no
+module Day02 where
+#+end_src
+
+This time we use a small package for nicer splitting:
+
+#+name: Setup
+#+begin_src haskell
+import Data.List (foldl')
+import Data.List.Split
+#+end_src
+
+* Part 1
+** Parsing the input
+
+As for the day before, we start by making a simple data structure:
+#+name: Data Structure for Ranges
+#+begin_src haskell
+data Range = Range !Integer !Integer deriving (Show)
+#+end_src
+
+We can mostly re-use the parsing logic from the day before, however this time the input is split by commas instead of newlines:
+#+name: Read Input
+#+begin_src haskell
+readInput :: IO [Range]
+readInput = do
+    str <- readFile "./input/Day02.txt"
+    return $ f <$> splitOn "," str
+  where
+    f :: String -> Range
+    f str = Range (read start) (read end)
+      where
+        l = splitOn "-" str
+        start = head l
+        end = last l
+#+end_src
+
+** Some Mathematics
+
+Since the id numbers can become quite large, simply brute-forcing is not the way. Instead, we should try to be a bit smarter!
+
+We are looking for patterns of the form \(abc \cdots abc \cdots_{10}\), this is already only possible if the number of digits is even! Further more, lets loot at some examples:
+- 2 digits: \(aa_{10} = 11 \cdot a_{10}\)
+- 4 digits: \(abab_{10} = 101 \cdot ab_{10}\)
+- 6 digits: \(abcabc_{10} = 1001 \cdot abc_{10}\)
+- ...
+
+Without too much mathematical proving, it seams that for \(2k\) digits all the
+invalid IDs are multiples of \(10^{k} + 1\).
+
+Consider for now the range from \(n\) to \(m\) where both are \(d\) digit numbers. If \(d\)
+is odd, then the answer is simply 0 as they can not be any fake IDs.
+If \(d = 2k\) is even, our task is to determine the sum of the multiples
+of \(K = 10^{k} + 1\) between these two numbers. For that we use integer
+division to find \(n = a K + r_{n}\) and \(m = b K + r_{m}\). The sum of the fake IDs is then simply:
+\begin{equation}
+\sum_{l = a'}^{b} Kl = K \sum_{l = a'}^{b} l = K \frac{(b - a' + 1)(b + a')}{2}
+\end{equation}
+where \(a'\) is \(a\) if \(n\) is divisible by \(K\) and \(a + 1\) otherwise.
+
+If \(n\) and \(m\) do not have the same number of digits (say \(d\) and \(d'\)) we can split
+the range into: \([n, 10^{d} -1], [10^{d}, 10^{d+1}-1], \cdots, [10^{d'}, m]\)
+and we can apply the above formula on each and make the sum.
+
+#+name: Number of Fake IDs in a range
+#+begin_src haskell
+decomposeRange :: Range -> [Range]
+decomposeRange (Range n m)
+  | dn == dm = [Range n m]
+  | otherwise = newRanges
+  where dn = length $ show n
+        dm = length $ show m
+        newRanges = Range n (10^dn - 1)
+                    : Range (10^(dm-1)) m
+                    : [Range (10^d) (10^(d+1)-1) | d <- [dn..(dm-2)] ]
+
+sumFakeIDs :: [Range] -> Integer
+sumFakeIDs = sum . map _sumFakeIDs
+
+_sumFakeIDs :: Range -> Integer
+_sumFakeIDs (Range n m)
+  | dn == dm = if even dn then kk*(b-a'+1)*(b+a') `div` 2 else 0
+  | otherwise = sumFakeIDs $ decomposeRange (Range n m)
+  where dn = length $ show n
+        dm = length $ show m
+        -- For equal case
+        k  = dn `div` 2
+        kk = 10^k + 1
+        a  = n `div` kk
+        b  = m `div` kk
+        a'  = if (n `mod` kk) == 0 then a else a+1
+
+testInput :: [Range]
+testInput = [ Range 11 22,
+              Range 95 115,
+              Range 998 1012,
+              Range 1188511880 1188511890,
+              Range 222220 222224,
+              Range 1698522 1698528,
+              Range 446443 446449,
+              Range 38593856 38593862,
+              Range 565653 565659,
+              Range 824824821 824824827,
+              Range 2121212118 2121212124]
+
+testAll = 4174379265
+#+end_src
+
+The solution is then simply:
+#+name: Solution 1
+#+begin_src haskell
+solution1 :: IO Integer
+solution1 = sumFakeIDs <$> readInput
+#+end_src
+
+* Part 2
+
+** (r,k)-repetitions
+
+We now consider "fake" all the IDs with \(n\)-times repetitions, i.e. patterns
+like \(ababab_{10}\). Note that this is a multiple of \(1 + 10^{2} + 10^{4}\).
+
+
+#+begin_definition "(r,k)-repetitions"
+We call *\((r,k)\)-repetition* a repetition of \(r\) blocks of \(k\) digits (for a total
+of \(r \cdot k\) digits). We call \(\mathcal{R}(r,k)\) the set of
+all \((r,k)\)-repetitions, hence the set of \(d\)-digit numbers
+is \(\mathcal{R}(1,d) =: \mathcal{D}(d)\).
+#+end_definition
+
+#+begin_theorem "Decomposition of (r,k)-repetitions"
+A range \(\mathcal{D}(d)\) will contain \((r,k)\)-repetitions if and only if \(r \cdot k = d\),
+furthermore \(\mathcal{R}(r_{1}r_{2},k)\) will be contained both in \(\mathcal{R}(r_{1},kr_{2})\) and in \(\mathcal{R}(r_{2},kr_{1})\), hence:
+\begin{equation}
+\mathcal{R}(r_{1}r_{2}, k) \subseteq \mathcal{R}(r_{1}, kr_{2}) \cap \mathcal{R}(r_{2}, kr_{1})
+\end{equation}
+
+#+begin_proof
+This can be shown simply by the fact that if a sequence is made of blocks of size \(k\), then it can also be made of blocks of size \(r_{1}k\) or \(r_{2}k\) if \(d = kr_{1}r_{2}\).
+#+end_proof
+#+end_theorem
+
+From this we can see that:
+\begin{equation}
+\mathcal{R}(r,k) \subseteq \bigcup_{p \in \mathbb{P}(d)} \mathcal{R}(p, d/p)
+\end{equation}
+where \(d = rk\) is the number of digits and \(\mathbb{P}(d)\) is the set of prime numbers that
+appear in the prime decomposition of \(d\) (i.e. \(d = 12 = 2^{2}3\),
+then \(\mathbb{D}(d) = \{2,3\}\)). This means that if we count all
+the \((p,d/p)\)-repetitions, we counted all the other repetitions too.
+
+However, it is not enough to just count the \((p,d/p)\)-repetitions directly, as they
+overlap (e.g. \(222222\) is both a \((3,2)\)-repetition and
+a \((2,3)\)-repetition). We can however show the following:
+
+#+begin_theorem "Decomposition of (r,k)-repetitions into co-prime repetitions"
+Consider \(\mathcal{R}(r_{1}r_{2},k)\) with \(r_{1}\) and \(r_{2}\) co-prime, then:
+\begin{equation}
+\mathcal{R}(r_{1}r_{2}, k) = \mathcal{R}(r_{1}, kr_{2}) \cap \mathcal{R}(r_{2}, kr_{1})
+\end{equation}
+
+#+begin_proof
+
+TODO
+
+#+end_proof
+#+end_theorem
+
+This allows us to know that we can subtract the \((p_{1}p_{2}, d/(p_{1}p_{2}))\)-repetitions from
+all the \((p,d/p)\)-repetition to account for the fact that they where counted
+twice. Note however that this again counts some repetitions twice, namely
+the \((p_{1}p_{2}p_{3},\cdots)\)-repetitions. Which again have some
+intersections. This pattern repeats until we have used all the prime numbers
+of \(d\).
+
+** Solution
+
+We can now consider some range \([n,m]\). If \(n\) and \(m\) do not have the same number of
+digits, we can do the same decomposition trick as for solution 1, hence we
+assume that \(n,m \in \mathcal{D}(d)\).
+
+Let \(d = p_{1}^{n_{1}} \cdots p_j^{n_j}\), we can use the above pattern to sum all the repetitions:
+\begin{equation} S[n,m] =
+\sum_{b_{1},b_{2},\cdots,b_{j} = 0}^{1} (-1)^{ 1 + \sum_{i} b_{i}}
+\quad
+S(p_{1}^{b_{1}} \cdots p_{j}^{b_{j}})[n,m]
+\end{equation}
+where \(S(p_{1}^{b_1} \cdots p_{j}^{b_{j}})[n,m]\) is the sum of \((p_{1}^{b1} \cdots, \cdot)\)-repetitions in \([n,m]\).
+
+** Implementation
+
+Then we can make a similar algorithm to solution 1 to count all
+the \((r,d/r)\)-repetitions (i.e. \(S(r)[n,m]\)):
+
+#+name: Sum r-repetitions
+#+begin_src haskell
+sumRRepetitions :: Integer -> Range -> Integer
+sumRRepetitions r (Range n m)
+  | dn == dm = if (dn `mod` r) == 0 then kk*((b-a'+1)*(b+a') `div` 2) else 0
+  | otherwise = error "Range is not of a single digit number!"
+  where dn = toInteger $ length $ show n
+        dm = toInteger $ length $ show m
+        k  = dn `div` r
+        kk = sum [10^(i * k) | i <- [0..(r-1)]]
+        a  = n `div` kk
+        b  = m `div` kk
+        a'  = if (n `mod` kk) == 0 then a else a+1
+#+end_src
+
+20942028255
+
+For the next step we need a simple prime decomposition algorithm, such as:
+#+name: Prime Decomposition
+#+begin_src haskell
+-- Source - https://stackoverflow.com/a
+-- Posted by Frank Schmitt, modified by community. See post 'Timeline' for change history
+-- Retrieved 2025-12-04, License - CC BY-SA 3.0
+primeFactors n =
+  case factors of
+    [] -> [n]
+    _  -> factors ++ primeFactors (n `div` head factors)
+  where factors = take 1 $ filter (\x -> (n `mod` x) == 0) [2 .. n-1]
+
+uniquePrimeFactors n = map snd $ filter (uncurry (/=)) $ zip (0:ps) ps
+  where ps = primeFactors n
+#+end_src
+
+We also need to be able to generate all the bit-strings of length \(j\):
+#+name: Bit-strings
+#+begin_src haskell
+bitStrings 0 = [[]]
+bitStrings j
+  | j < 0 = error "Bit-strings must have positive length"
+  | j > 0 = z ++ o
+  where z = map (0:) $ bitStrings (j-1)
+        o = map (1:) $ bitStrings (j-1)
+#+end_src
+
+
+Using this we can get all the repetitions in the range:
+#+name: Sum all repetitions
+#+begin_src haskell
+sumAllRepetitions :: Range -> Integer
+sumAllRepetitions range
+  | dn == dm && dn == 1 = 0 -- No fake 1 digit indices
+  | dn == dm = sum $ zipWith (*) signs $ map (`sumRRepetitions` range) rs
+  | otherwise = error "Range is not of a single digit number!"
+  where (Range n m) = range
+        dn = toInteger $ length $ show n
+        dm = toInteger $ length $ show m
+        ps = uniquePrimeFactors dn
+        bits = tail $ bitStrings $ length ps -- the first one is ignored
+        rs = map (product . zipWith (^) ps ) bits
+        signs = map (\ x -> (-1)^(1 + sum x)) bits
+#+end_src
+
+Finally, adding the decomposition step from above and the full loop over all cases:
+#+name: Sum all repetitions list
+#+begin_src haskell
+sumAllRepetitions_fromList :: [Range] -> Integer
+sumAllRepetitions_fromList = sum . map f
+  where f = sum . map sumAllRepetitions . decomposeRange
+#+end_src
+
+Which allows us to calculate the solution:
+#+name: Solution 2
+#+begin_src haskell
+solution2 :: IO Integer
+solution2 = sumAllRepetitions_fromList <$> readInput
+#+end_src
