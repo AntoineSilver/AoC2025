@@ -1,0 +1,107 @@
+:PROPERTIES:
+:header-args:haskell: :session main :tangle Day04.hs :comments link
+:END:
+
+#+SETUPFILE: /home/antoine/.config/doom/org-themes/exercise.org
+
+
+
+#+title: Day 04 of Advent of Code 2025
+#+autor: Antoine Guinchard
+
+
+* Part 0: Setup and Parsing
+
+#+begin_src haskell :comments no
+module Day04 where
+#+end_src
+
+Parsing the data is restively simple here:
+#+name: Parse Data
+#+begin_src haskell
+testInput :: [[Integer]]
+testInput =
+    [ [0, 0, 1, 1, 0, 1, 1, 1, 1, 0] -- ..@@.@@@@.
+    , [1, 1, 1, 0, 1, 0, 1, 0, 1, 1] -- @@@.@.@.@@
+    , [1, 1, 1, 1, 1, 0, 1, 0, 1, 1] -- @@@@@.@.@@
+    , [1, 0, 1, 1, 1, 1, 0, 0, 1, 0] -- @.@@@@..@.
+    , [1, 1, 0, 1, 1, 1, 1, 0, 1, 1] -- @@.@@@@.@@
+    , [0, 1, 1, 1, 1, 1, 1, 1, 0, 1] -- .@@@@@@@.@
+    , [0, 1, 0, 1, 0, 1, 0, 1, 1, 1] -- .@.@.@.@@@
+    , [1, 0, 1, 1, 1, 0, 1, 1, 1, 1] -- @.@@@.@@@@
+    , [0, 1, 1, 1, 1, 1, 1, 1, 1, 0] -- .@@@@@@@@.
+    , [1, 0, 1, 0, 1, 1, 1, 0, 1, 0] -- @.@.@@@.@.
+    ]
+
+readInput :: IO [[Integer]]
+readInput = do
+    str <- readFile "./input/Day04.txt"
+    return $ f <$> lines str
+  where
+    f :: String -> [Integer]
+    f = map (\c -> if c == '@' then 1 else 0)
+#+end_src
+
+* Part 1: Counting Free Rolls
+
+Let's start by defining shifts of the map in the four cardinal directions:
+#+name: Shift Grid
+#+begin_src haskell
+shiftU :: [[Integer]] -> [[Integer]]
+shiftU g = tail g ++ [take w (repeat 0)]
+  where
+    w = length (head g)
+
+shiftD :: [[Integer]] -> [[Integer]]
+shiftD g = take w (repeat 0) : init g
+  where
+    w = length (head g)
+
+shiftL :: [[Integer]] -> [[Integer]]
+shiftL = map (\r -> tail r ++ [0])
+
+shiftR :: [[Integer]] -> [[Integer]]
+shiftR = map (\r -> 0 : init r)
+#+end_src
+
+By considering the 8 different shifts (both the cardinal ones and the diagonal
+ones), we can simply overlap them to count the neighbours around a given point.
+Then we use that to filter the paper rolls to form the map of free rolls.
+Finally summing along both axis gives the desired number of free rolls.
+#+name: Solution 1
+#+begin_src haskell
+mapFree :: [[Integer]] -> [[Integer]]
+mapFree g = freeMap
+              where nCount = foldr1 (zipWith (zipWith (+))) [u,d,l,r,ul,ur,dl,dr]
+                    freeMapFull = map (map (<4)) nCount
+                    freeMap = zipWith (zipWith (\f -> \x -> if f then x else 0)) freeMapFull g
+                    u = shiftU g
+                    d = shiftD g
+                    l = shiftL g
+                    r = shiftR g
+                    ul = shiftL u
+                    ur = shiftR u
+                    dl = shiftL d
+                    dr = shiftR d
+
+countFree :: [[Integer]] -> Integer
+countFree g = sum $ map sum (mapFree g)
+
+solution1 = countFree <$> readInput
+#+end_src
+
+* Part 2: Recursive
+
+To find the recursively free rolls, just perform the above operation recursively...
+
+#+name: Solution 2
+#+begin_src haskell
+countAllFree g
+             | nbFree == 0 = 0
+             | otherwise = nbFree + countAllFree newMap
+             where freeMap = mapFree g
+                   nbFree = sum $ map sum freeMap
+                   newMap = zipWith (zipWith (-)) g freeMap
+
+solution2 = countAllFree <$> readInput
+#+end_src
