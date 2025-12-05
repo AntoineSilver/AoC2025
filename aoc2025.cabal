@@ -10,3 +10,13 @@ library
                  split >=0.2.5,
   default-language: Haskell2010
 
+
+benchmark fullbenchmark
+    type: exitcode-stdio-1.0
+    hs-source-dirs: benchmarks
+    main-is: MainBenchmark.hs
+    build-depends: base ^>= 4.18,
+                   aoc2025,
+                   criterion
+    ghc-options: -O2 -rtsopts -with-rtsopts=-A32m
+    default-language:    Haskell2010
