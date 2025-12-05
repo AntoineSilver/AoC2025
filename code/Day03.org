@@ -1,0 +1,107 @@
+:PROPERTIES:
+:header-args:haskell: :session main :tangle Day03.hs :comments link
+:END:
+
+#+SETUPFILE: /home/antoine/.config/doom/org-themes/exercise.org
+
+
+
+#+title: Day 03 of Advent of Code 2025
+#+autor: Antoine Guinchard
+
+
+* Part 0: Setup and Parsing
+
+#+begin_src haskell :comments no
+module Day03 where
+#+end_src
+
+#+name: Setup
+#+begin_src haskell
+import Data.List (foldl')
+import Data.List.Split
+import Data.Foldable (maximumBy)
+import Data.Function (on)
+#+end_src
+
+Parsing the data is restively simple here:
+#+name: Parse Data
+#+begin_src haskell
+testInput :: [[Integer]]
+testInput = [
+          [9,8,7,6,5,4,3,2,1,1,1,1,1,1,1],
+          [8,1,1,1,1,1,1,1,1,1,1,1,1,1,9],
+          [2,3,4,2,3,4,2,3,4,2,3,4,2,7,8],
+          [8,1,8,1,8,1,9,1,1,1,1,2,1,1,1]]
+
+readInput :: IO [[Integer]]
+readInput = do
+    str <- readFile "./input/Day03.txt"
+    return $ f <$> lines str
+  where
+    f :: String -> [Integer]
+    f = map (\c -> read [c])
+#+end_src
+
+
+* Part 1: 2 Jolts
+
+Given a string of digits \((d_{i})_{0 \leq i < N}\) we search for \(n < m\) such that the number
+formed by \(d_{n}d_{m}\) is as large as possible. Since the first digit matters
+most, we simply take the largest digit \(d_{n}\) where \(0 \leq n < N - 1\). If
+there are multiple largest digits, the first one is always a "better" choice
+since it allows more choices for the second digit.
+
+The second digit is then simply the largest digit \(d_{m}\) where \(n < m < N\).
+
+#+name: Make largest digit
+#+begin_src haskell
+makeMaxNumbers :: [Integer] -> Integer
+makeMaxNumbers ds = 10 * dn + dm
+  where ids = zip [0..] ds
+        (n, dn) = maximumBy order $ init ids
+        (m, dm) = maximumBy order $ drop (n+1) ids
+        order (a, da) (b, db)
+              | cdadb == EQ = compare b a
+              | otherwise = cdadb
+              where cdadb = compare da db
+#+end_src
+
+We can then just map and sum to get the desired result:
+#+name: Solution 1
+#+begin_src haskell
+max2Jolt :: [[Integer]] -> Integer
+max2Jolt = sum . map makeMaxNumbers
+
+solution1 = max2Jolt <$> readInput
+#+end_src
+
+* Part 2: 12x Jolt!
+
+We now consider the same problem but taking 12 digits! This is however not that
+complicated and we can use some nice recursion (and therefore also generalize
+to \(n\)) digits:
+#+begin_src haskell
+makeMaxNumbersN :: Int -> [Integer] -> Integer
+makeMaxNumbersN n ds
+  | n == 1 = di
+  | otherwise = 10^(n-1) * di + makeMaxNumbersN (n-1) (drop (i+1) ds) 
+  where nb_ds = length ds
+        ids = zip [0..] ds
+        (i, di) = maximumBy order $ take (nb_ds - n + 1) ids
+        order (a, da) (b, db)
+              | cdadb == EQ = compare b a
+              | otherwise = cdadb
+              where cdadb = compare da db
+#+end_src
+
+Again, the solution is simply a sum and a map:
+#+name: Solution 2
+#+begin_src haskell
+max12Jolt :: [[Integer]] -> Integer
+max12Jolt = sum . map (makeMaxNumbersN 12)
+
+solution2 = max12Jolt <$> readInput
+#+end_src
+
+
