@@ -5,9 +5,12 @@ build-type: Simple
 
 library
   hs-source-dirs: code
-  exposed-modules: Day01, Day02, Day03, Day04
+  exposed-modules: Day01, Day02, Day03, Day04, Day05
   build-depends: base >=4.18 && <5,
+                 containers >=0.6.7,
                  split >=0.2.5,
+                 text >=2.0 && < 3,
+                 megaparsec >=9.7.0 && <10,
   default-language: Haskell2010
 
 

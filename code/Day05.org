@@ -1,0 +1,138 @@
+:PROPERTIES:
+:header-args:haskell: :session main :tangle Day05.hs :comments link
+:END:
+
+#+SETUPFILE: /home/antoine/.config/doom/org-themes/exercise.org
+
+
+
+#+title: Day 05 of Advent of Code 2025
+#+autor: Antoine Guinchard
+
+[[https://adventofcode.com/2025/day/5][Link to Problem]]
+
+* Part 0: Setup and Parsing
+
+Let's use something a bit better than strings...
+
+#+begin_src haskell :comments no
+{-# LANGUAGE OverloadedStrings #-}
+module Day05 where
+#+end_src
+
+#+name: Setup
+#+begin_src haskell
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import Text.Megaparsec.Char.Lexer
+import Data.Either
+import Data.Text (Text)
+import qualified Data.Text.IO as Txt.IO
+import Data.Void (Void)
+import GHC.Num (integerFromInt)
+import Data.List (sortOn)
+#+end_src
+
+We re-use the range object from Day02:
+#+name: Data Structure for Ranges
+#+begin_src haskell
+data Range = Range !Integer !Integer deriving (Show)
+#+end_src
+
+This time we have to be a bit more careful when parsing the data, since we have
+two distinct parts. We can use that as an opportunity to use parser combinators!
+#+name: Parse Data
+#+begin_src haskell
+type Parser a = Parsec Void Text a -- Some type aliase for niceness
+
+rangeParser :: Parser Range
+rangeParser = do
+  x <- decimal
+  char '-'
+  y <- decimal
+  return $ Range x y
+
+inputParser :: Parser ([Range], [Integer])
+inputParser = do
+  rs <- rangeParser `sepEndBy1` newline
+  eol
+  ids <- decimal `sepEndBy1` newline
+  eof
+  return (rs, ids)
+
+readInput :: IO ([Range], [Integer])
+readInput = do
+  input <- Txt.IO.readFile "./input/Day05.txt"
+  case parse inputParser "Day05.txt" input of
+    Left err  -> do {putStr (errorBundlePretty err); return ([],[]);}
+    Right res -> return res
+#+end_src
+
+
+* Part 1:
+
+The first part is relatively simple and we can construct our answer from simple blocks:
+
+#+name: Solution 1 
+#+begin_src haskell
+isIn :: Integer -> Range -> Bool
+isIn i (Range n m) = n <= i && i <= m
+
+isFresh :: [Range] -> Integer -> Bool
+isFresh rs i = foldr ((||) . isIn i) False rs
+
+countFresh :: [Range] -> [Integer] -> Integer
+countFresh rs ids = integerFromInt $ length $ filter (isFresh rs) ids
+
+solution1 :: IO Integer
+solution1 = uncurry countFresh <$> readInput
+#+end_src
+
+* Part 2:
+
+The second part is a bit trickier: We want to find the number of total elements in all the ranges. However, we can not simply count the number of elements in each range and then sum these numbers as the ranges intersect.
+
+To simplify the problem, we can start by sorting the ranges according to their
+size (the number of numbers they contain), as such we guaranty that
+range \(R_{i}\) never contains range \(R_{j}\) for \(j > i\) (they might however
+be equal).
+
+This simplification allows us to design an algorithm that starts with \(R_{0}\),
+removes all the numbers that are in \((R_{i})_{i>0}\) by looping over
+each \(R_{i}\) and removing the intersection of \(R_{i}\) and \(R_{0}\), such
+that at the end \(R_{0}\) only contains numbers that are not in any other range.
+Since \(R_{i}\) for \(i > 0\) is not contained in \(R_{0}\), we can guaranty that
+at each step the new \(R_{0}\) is still a continuous range (it is not cut in
+two), which allows for the following relatively efficient implementation:
+
+#+name: Solution 2 
+#+begin_src haskell
+
+rangeSize :: Range -> Integer
+rangeSize (Range n m) = m - n + 1
+
+countAllFresh :: [Range] -> Integer
+countAllFresh = countAllFreshFromSorted . sortOn rangeSize
+
+countAllFreshFromSorted :: [Range] -> Integer
+countAllFreshFromSorted [] = 0 
+countAllFreshFromSorted (r:rs) = f r rs + countAllFreshFromSorted rs
+  where
+    -- f r rs: gives the number of elements in r that are not in rs this is done
+    --         by making r smaller for each r' in rs since (r:rs) is sorted by
+    --         increasing size, we can garanty that r \ r' is again a range.
+    f r [] = rangeSize r
+    f r (r':rs) = if newN <= newM then f newR rs else 0
+      where Range n m = r
+            Range n' m' = r'
+            newN = if n `isIn` r' then m'+1 else n 
+            newM = if m `isIn` r' then n'-1 else m 
+            newR = Range newN newM
+
+
+solution2 :: IO Integer
+solution2 = f <$> readInput
+  where f (rs, ids) = countAllFresh $ sortOn rangeSize rs
+#+end_src
+
+
