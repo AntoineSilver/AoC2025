@@ -2,13 +2,10 @@
 :header-args:haskell: :session main :tangle Day04.hs :comments link
 :END:
 
-#+SETUPFILE: /home/antoine/.config/doom/org-themes/exercise.org
-
-
-
 #+title: Day 04 of Advent of Code 2025
 #+autor: Antoine Guinchard
 
+[[https://adventofcode.com/2025/day/4][Link to Problem]]
 
 * Part 0: Setup and Parsing
 

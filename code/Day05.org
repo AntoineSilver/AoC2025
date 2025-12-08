@@ -2,10 +2,6 @@
 :header-args:haskell: :session main :tangle Day05.hs :comments link
 :END:
 
-#+SETUPFILE: /home/antoine/.config/doom/org-themes/exercise.org
-
-
-
 #+title: Day 05 of Advent of Code 2025
 #+autor: Antoine Guinchard
 

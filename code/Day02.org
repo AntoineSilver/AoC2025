@@ -4,7 +4,6 @@
 
 #+title: Day 02 of Advent of Code 2025
 #+autor: Antoine Guinchard
-#+date:<2025-12-02 Tue>
 
 
 [[https://adventofcode.com/2025/day/2][Link to Problem]]
