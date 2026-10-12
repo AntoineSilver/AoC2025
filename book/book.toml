@@ -1,0 +1,11 @@
+[book]
+title = "Advent of Code 2025"
+authors = ["Antoine Guinchard"]
+language = "en"
+
+[build]
+extra-watch-dirs = ["../code"]
+
+[output.html]
+mathjax-support = true
+git-repository-url = "https://github.com/AntoineSilver/AoC2025"
