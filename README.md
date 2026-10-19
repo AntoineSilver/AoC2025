@@ -1,5 +1,7 @@
 # Advent of Code 2025
 
+Read it [here](https://antoinesilver.github.io/AoC2025/)!
+
 This repo contains my solutions to the
 [advent of code 2025](https://adventofcode.com/2025/).
 
