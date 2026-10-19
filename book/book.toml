@@ -9,3 +9,5 @@ extra-watch-dirs = ["../code"]
 [output.html]
 mathjax-support = true
 git-repository-url = "https://github.com/AntoineSilver/AoC2025"
+# add the CSS file
+additional-css = ["theme/code_colors_fix.css"]
