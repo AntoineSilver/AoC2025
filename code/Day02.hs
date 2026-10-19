@@ -1,15 +1,13 @@
 module Day02 where
 
--- [[file:Day02.org::Setup][Setup]]
-import Data.List (foldl')
-import Data.List.Split
--- Setup ends here
+import           Data.List       (foldl')
+import           Data.List.Split
 
--- [[file:Day02.org::Data Structure for Ranges][Data Structure for Ranges]]
-data Range = Range !Integer !Integer deriving (Show)
--- Data Structure for Ranges ends here
+-- ANCHOR: types
+data Range = Range Integer Integer deriving (Show)
+-- ANCHOR_END: types
 
--- [[file:Day02.org::Read Input][Read Input]]
+-- ANCHOR: read
 readInput :: IO [Range]
 readInput = do
     str <- readFile "./input/Day02.txt"
@@ -21,9 +19,9 @@ readInput = do
         l = splitOn "-" str
         start = head l
         end = last l
--- Read Input ends here
+-- ANCHOR_END: read
 
--- [[file:Day02.org::Number of Fake IDs in a range][Number of Fake IDs in a range]]
+-- ANCHOR: decomposeRange
 decomposeRange :: Range -> [Range]
 decomposeRange (Range n m)
   | dn == dm = [Range n m]
@@ -33,14 +31,14 @@ decomposeRange (Range n m)
         newRanges = Range n (10^dn - 1)
                     : Range (10^(dm-1)) m
                     : [Range (10^d) (10^(d+1)-1) | d <- [dn..(dm-2)] ]
+-- ANCHOR_END: decomposeRange
 
-sumFakeIDs :: [Range] -> Integer
-sumFakeIDs = sum . map _sumFakeIDs
 
-_sumFakeIDs :: Range -> Integer
-_sumFakeIDs (Range n m)
+-- ANCHOR: sum2Repetitions
+sum2Repetitions :: Range -> Integer
+sum2Repetitions (Range n m)
   | dn == dm = if even dn then kk*(b-a'+1)*(b+a') `div` 2 else 0
-  | otherwise = sumFakeIDs $ decomposeRange (Range n m)
+  | otherwise = sum2Repetitions_fromList $ decomposeRange (Range n m)
   where dn = length $ show n
         dm = length $ show m
         -- For equal case
@@ -49,72 +47,78 @@ _sumFakeIDs (Range n m)
         a  = n `div` kk
         b  = m `div` kk
         a'  = if (n `mod` kk) == 0 then a else a+1
--- Number of Fake IDs in a range ends here
 
--- [[file:Day02.org::Solution 1][Solution 1]]
+sum2Repetitions_fromList :: [Range] -> Integer
+sum2Repetitions_fromList = sum . map sum2Repetitions
+-- ANCHOR_END: sum2Repetitions
+
+-- ANCHOR: out1
 solution1 :: IO Integer
-solution1 = sumFakeIDs <$> readInput
--- Solution 1 ends here
+solution1 = sum2Repetitions_fromList <$> readInput
+-- ANCHOR_END: out1
 
--- [[file:Day02.org::Sum r-repetitions][Sum r-repetitions]]
+-- ANCHOR: sumRRepetitions
 sumRRepetitions :: Integer -> Range -> Integer
 sumRRepetitions r (Range n m)
   | dn == dm = if (dn `mod` r) == 0 then kk*((b-a'+1)*(b+a') `div` 2) else 0
-  | otherwise = error "Range is not of a single digit number!"
+  | otherwise = sumRRepetitions_fromList r $ decomposeRange (Range n m)
   where dn = toInteger $ length $ show n
         dm = toInteger $ length $ show m
+        -- For equal case
         k  = dn `div` r
-        kk = sum [10^(i * k) | i <- [0..(r-1)]]
+        kk = (10^(r * k) - 1) `div` (10^k - 1)
         a  = n `div` kk
         b  = m `div` kk
         a'  = if (n `mod` kk) == 0 then a else a+1
--- Sum r-repetitions ends here
 
--- [[file:Day02.org::Prime Decomposition][Prime Decomposition]]
--- Source - https://stackoverflow.com/a
--- Posted by Frank Schmitt, modified by community. See post 'Timeline' for change history
--- Retrieved 2025-12-04, License - CC BY-SA 3.0
-primeFactors n =
-  case factors of
-    [] -> [n]
-    _  -> factors ++ primeFactors (n `div` head factors)
-  where factors = take 1 $ filter (\x -> (n `mod` x) == 0) [2 .. n-1]
+sumRRepetitions_fromList :: Integer -> [Range] -> Integer
+sumRRepetitions_fromList r = sum . map (sumRRepetitions r)
+-- ANCHOR_END: sumRRepetitions
 
-uniquePrimeFactors n = map snd $ filter (uncurry (/=)) $ zip (0:ps) ps
-  where ps = primeFactors n
--- Prime Decomposition ends here
+-- ANCHOR: helper
+primeFactors :: Integer -> [Integer]
+primeFactors n = step (abs n) 2
+  where
+    step x p
+      | x <= 1         = []
+      | (p * p) > x    = [x] -- no more factors
+      | x `mod` p == 0 = p : step (strip p x) (p+1)
+      | otherwise      = step x (p+1)
 
--- [[file:Day02.org::Bit-strings][Bit-strings]]
+    strip p x -- remove all factors of p from x
+      | x `mod` p == 0 = strip p (x `div` p)
+      | otherwise      = x
+
+bitStrings :: Int -> [[Integer]]
 bitStrings 0 = [[]]
 bitStrings j
   | j < 0 = error "Bit-strings must have positive length"
   | j > 0 = z ++ o
   where z = map (0:) $ bitStrings (j-1)
         o = map (1:) $ bitStrings (j-1)
--- Bit-strings ends here
+-- ANCHOR_END: helper
 
--- [[file:Day02.org::Sum all repetitions][Sum all repetitions]]
+-- ANCHOR: sumAllRepetitions
 sumAllRepetitions :: Range -> Integer
 sumAllRepetitions range
-  | dn == dm && dn == 1 = 0 -- No fake 1 digit indices
+  | dn == dm && dn == 1 = 0 -- No 1 digit repetitions
   | dn == dm = sum $ zipWith (*) signs $ map (`sumRRepetitions` range) rs
-  | otherwise = error "Range is not of a single digit number!"
+  | otherwise = sumAllRepetitions_fromList $ decomposeRange (Range n m)
   where (Range n m) = range
         dn = toInteger $ length $ show n
         dm = toInteger $ length $ show m
-        ps = uniquePrimeFactors dn
-        bits = tail $ bitStrings $ length ps -- the first one is ignored
-        rs = map (product . zipWith (^) ps ) bits
+        -- For equal case
+        ps   = primeFactors dn
+        bits = tail $ bitStrings $ length ps
+               -- ^ the first one is ignored (all zeros)
+        rs    = map (product . zipWith (^) ps ) bits
         signs = map (\ x -> (-1)^(1 + sum x)) bits
--- Sum all repetitions ends here
 
--- [[file:Day02.org::Sum all repetitions list][Sum all repetitions list]]
 sumAllRepetitions_fromList :: [Range] -> Integer
-sumAllRepetitions_fromList = sum . map f
-  where f = sum . map sumAllRepetitions . decomposeRange
--- Sum all repetitions list ends here
+sumAllRepetitions_fromList = sum . map sumAllRepetitions
+-- ANCHOR_END: sumAllRepetitions
 
--- [[file:Day02.org::Solution 2][Solution 2]]
+-- ANCHOR: out2
 solution2 :: IO Integer
 solution2 = sumAllRepetitions_fromList <$> readInput
--- Solution 2 ends here
+-- ANCHOR_END: out2
