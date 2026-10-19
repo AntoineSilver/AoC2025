@@ -1,0 +1,85 @@
+:root {
+  /* TODO: Adapt to theme */
+  --blockquote-definition-color: #20ffa0;
+  --blockquote-theorem-color: #a0b0ff;
+  --blockquote-proof-color: #ff6060;
+}
+
+.blockquote-tag-definition {
+  border-inline-start-color: var(--blockquote-definition-color);
+}
+.blockquote-tag-theorem {
+  border-inline-start-color: var(--blockquote-theorem-color);
+}
+.blockquote-tag-proof {
+  border-inline-start-color: var(--blockquote-proof-color);
+}
+
+.blockquote-tag-definition > .blockquote-tag-title {
+  color: var(--blockquote-definition-color);
+}
+.blockquote-tag-theorem > .blockquote-tag-title {
+  color: var(--blockquote-theorem-color);
+}
+.blockquote-tag-proof > .blockquote-tag-title {
+  color: var(--blockquote-proof-color);
+}
+
+/* Spacing hack */
+
+/* If a proof folows a theorem, it should have no gap to show continuity */
+
+.blockquote-tag-theorem + .blockquote-tag-proof {
+  margin-top: 0;
+}
+
+.blockquote-tag-theorem:has(+ .blockquote-tag-proof) {
+  margin-bottom: 0;
+}
+
+/* Icons */
+
+:root {
+  /* Lucide: book-open */
+  --icon-definition: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-book-open%20preview-icon%22%3E%3Cpath%20d%3D%22M12%205v16%22%2F%3E%3Cpath%20d%3D%22M20.001%2019A2%202%200%200022%2017V5a2%202%200%2000-1.999-2L16%203.002A5%205%200%200012%205a5%205%200%2000-4-2H4a2%202%200%2000-2%202v12a2%202%200%20001.999%202H8a5%205%200%20014%202%205%205%200%20014-2z%22%2F%3E%3C%2Fsvg%3E");
+  /* Lucide: square-equal */
+  --icon-theorem: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-square-equal%20preview-icon%22%3E%3Crect%20width%3D%2218%22%20height%3D%2218%22%20x%3D%223%22%20y%3D%223%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%2010h10%22%2F%3E%3Cpath%20d%3D%22M7%2014h10%22%2F%3E%3C%2Fsvg%3E");
+  /* Lucide: check-check */
+  --icon-proof: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-check-check%20preview-icon%22%3E%3Cpath%20d%3D%22M18%206%207%2017l-5-5%22%2F%3E%3Cpath%20d%3D%22m22%2010-7.5%207.5L13%2016%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.blockquote-tag-definition .blockquote-tag-title::before,
+.blockquote-tag-theorem .blockquote-tag-title::before,
+.blockquote-tag-proof .blockquote-tag-title::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background-color: currentColor;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.blockquote-tag-definition .blockquote-tag-title::before {
+  -webkit-mask-image: var(--icon-definition);
+  mask-image: var(--icon-definition);
+}
+
+.blockquote-tag-theorem .blockquote-tag-title::before {
+  -webkit-mask-image: var(--icon-theorem);
+  mask-image: var(--icon-theorem);
+}
+
+.blockquote-tag-proof .blockquote-tag-title::before {
+  -webkit-mask-image: var(--icon-proof);
+  mask-image: var(--icon-proof);
+}
