@@ -19,6 +19,13 @@ Our task is to find the all the numbers in these ranges made by a digit pattern
 of the form `abc..abc..` (e.g. 1010, 123123 or even 111111), which we call a
 2-repetition. The final result is the sum of all these numbers.
 
+> [!NOTE]
+>
+> It is possible to brute-force this (and the following) problem by simply
+> iterating over all the numbers in the given ranges and checking if they have
+> the desired pattern. Here we will however try to analyse the problem to find a
+> (much) more efficient method.
+
 ### Data Structures and Input Parsing
 
 Just as we did for [day 1](./Day01.md), we start by forming a fitting type to
