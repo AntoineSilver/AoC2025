@@ -19,12 +19,17 @@ Our task is to find the all the numbers in these ranges made by a digit pattern
 of the form `abc..abc..` (e.g. 1010, 123123 or even 111111), which we call a
 2-repetition. The final result is the sum of all these numbers.
 
-> [!NOTE]
+> [!WARNING] A lot of Math!
 >
-> It is possible to brute-force this (and the following) problem by simply
-> iterating over all the numbers in the given ranges and checking if they have
-> the desired pattern. Here we will however try to analyse the problem to find a
-> (much) more efficient method.
+> It is possible to brute-force both parts of this problem by simply iterating
+> over all the numbers in the given ranges and checking if they have the desired
+> pattern(s). Here we will however try to analyse the problem to find a (much)
+> more efficient method.
+>
+> As a consequence of this, I will not explain much of the haskell code it-self,
+> instead focusing on the mathematics of this problem. Most of it is however not
+> very different to how one might solve this problem in any other programming
+> language.
 
 ### Data Structures and Input Parsing
 
