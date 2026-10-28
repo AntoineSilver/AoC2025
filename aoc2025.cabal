@@ -19,7 +19,7 @@ benchmark fullbenchmark
     type: exitcode-stdio-1.0
     hs-source-dirs: benchmarks
     main-is: MainBenchmark.hs
-    build-depends: base ^>= 4.18,
+    build-depends: base >= 4.18 && <5,
                    aoc2025,
                    criterion
     ghc-options: -O2 -rtsopts -with-rtsopts=-A32m
