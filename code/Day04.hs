@@ -1,75 +1,96 @@
+{-# LANGUAGE DerivingVia     #-}
+{-# LANGUAGE PatternSynonyms #-}
 module Day04 where
+import           Data.Coerce       (coerce)
+import           Data.Massiv.Array (Array, Border (Fill), Comp (Par), DW,
+                                    Ix2 (..), Load (makeArray), P, Prim,
+                                    Stencil, Sz (Sz), U, compute, makeStencil,
+                                    mapStencil)
+import qualified Data.Massiv.Array as A
+import           Data.Word         (Word8)
 
--- [[file:Day04.org::Parse Data][Parse Data]]
-testInput :: [[Integer]]
-testInput =
-    [ [0, 0, 1, 1, 0, 1, 1, 1, 1, 0] -- ..@@.@@@@.
-    , [1, 1, 1, 0, 1, 0, 1, 0, 1, 1] -- @@@.@.@.@@
-    , [1, 1, 1, 1, 1, 0, 1, 0, 1, 1] -- @@@@@.@.@@
-    , [1, 0, 1, 1, 1, 1, 0, 0, 1, 0] -- @.@@@@..@.
-    , [1, 1, 0, 1, 1, 1, 1, 0, 1, 1] -- @@.@@@@.@@
-    , [0, 1, 1, 1, 1, 1, 1, 1, 0, 1] -- .@@@@@@@.@
-    , [0, 1, 0, 1, 0, 1, 0, 1, 1, 1] -- .@.@.@.@@@
-    , [1, 0, 1, 1, 1, 0, 1, 1, 1, 1] -- @.@@@.@@@@
-    , [0, 1, 1, 1, 1, 1, 1, 1, 1, 0] -- .@@@@@@@@.
-    , [1, 0, 1, 0, 1, 1, 1, 0, 1, 0] -- @.@.@@@.@.
-    ]
 
-readInput :: IO [[Integer]]
-readInput = do
+-- ANCHOR: cellState
+newtype CellState = CellState Word8
+  deriving (Eq, Prim) via Word8
+
+instance Show CellState where
+  show Empty = "."
+  show Full  = "@"
+
+pattern Empty :: CellState
+pattern Empty = CellState 0
+
+pattern Full :: CellState
+pattern Full = CellState 1
+
+{-# COMPLETE Empty, Full #-}
+-- ANCHOR_END: cellState
+
+-- ANCHOR: board
+type Board = Array P Ix2 CellState
+-- ANCHOR_END: board
+
+-- ANCHOR: readInput
+readInput :: IO Board
+readInput =
+  do
     str <- readFile "./input/Day04.txt"
-    return $ f <$> lines str
+    let ls = lines str
+    let size = Sz (Ix2 (length ls) (length (ls !! 0)))
+    let array = makeArray Par size (getCell ls) :: Board
+    return array
   where
-    f :: String -> [Integer]
-    f = map (\c -> if c == '@' then 1 else 0)
--- Parse Data ends here
+    getCell ls (Ix2 x y)
+      | (ls !! x) !! y == '@' = Full
+      | otherwise = Empty
+-- ANCHOR_END: readInput
 
--- [[file:Day04.org::Shift Grid][Shift Grid]]
-shiftU :: [[Integer]] -> [[Integer]]
-shiftU g = tail g ++ [take w (repeat 0)]
+-- ANCHOR: stencils
+freeableFromGet :: (Ix2 -> CellState) -> Bool
+freeableFromGet get = neighborSum < 4 && center == Full
   where
-    w = length (head g)
+    center = get (0 :. 0)
+    neighborSum = sum $ map (coerce . get) neighbors :: Word8
+    neighbors = [-1 :. -1, -1 :. 0, -1 :. 1,
+                  0 :. -1,           0 :. 1,
+                  1 :. -1,  1 :. 0,  1 :. 1]
+{-# INLINE freeableFromGet #-}
 
-shiftD :: [[Integer]] -> [[Integer]]
-shiftD g = take w (repeat 0) : init g
+freeableStencil :: Stencil Ix2 CellState Bool
+freeableStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) freeableFromGet
+{-# INLINE freeableStencil #-}
+
+stepStencil :: Stencil Ix2 CellState CellState
+stepStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) $ \get ->
+  if freeableFromGet get then Empty else get (0 :. 0)
+{-# INLINE stepStencil #-}
+-- ANCHOR_END: stencils
+
+-- ANCHOR: freeable
+countFreeable :: Board -> Integer
+countFreeable b = A.foldrS f (0 :: Integer) freeable_manifest
+  where f val acc = acc + if val then 1 else 0
+        freeable_delayed = mapStencil  (Fill Empty) freeableStencil b
+        freeable_manifest = compute freeable_delayed :: Array U Ix2 Bool
+-- ANCHOR_END: freeable
+
+-- ANCHOR: solution1
+solution1 :: IO Integer
+solution1 = countFreeable <$> readInput
+-- ANCHOR_END: solution1
+
+-- ANCHOR: allFreeable
+countAllFreeable :: Board -> Integer
+countAllFreeable b
+  | freeable == 0 = 0
+  | otherwise     = freeable + countAllFreeable nextBoard
   where
-    w = length (head g)
+    freeable = countFreeable b
+    nextBoard = compute $ mapStencil  (Fill Empty) stepStencil b :: Board
+-- ANCHOR_END: allFreeable
 
-shiftL :: [[Integer]] -> [[Integer]]
-shiftL = map (\r -> tail r ++ [0])
-
-shiftR :: [[Integer]] -> [[Integer]]
-shiftR = map (\r -> 0 : init r)
--- Shift Grid ends here
-
--- [[file:Day04.org::Solution 1][Solution 1]]
-mapFree :: [[Integer]] -> [[Integer]]
-mapFree g = freeMap
-              where nCount = foldr1 (zipWith (zipWith (+))) [u,d,l,r,ul,ur,dl,dr]
-                    freeMapFull = map (map (<4)) nCount
-                    freeMap = zipWith (zipWith (\f -> \x -> if f then x else 0)) freeMapFull g
-                    u = shiftU g
-                    d = shiftD g
-                    l = shiftL g
-                    r = shiftR g
-                    ul = shiftL u
-                    ur = shiftR u
-                    dl = shiftL d
-                    dr = shiftR d
-
-countFree :: [[Integer]] -> Integer
-countFree g = sum $ map sum (mapFree g)
-
-solution1 = countFree <$> readInput
--- Solution 1 ends here
-
--- [[file:Day04.org::Solution 2][Solution 2]]
-countAllFree g
-             | nbFree == 0 = 0
-             | otherwise = nbFree + countAllFree newMap
-             where freeMap = mapFree g
-                   nbFree = sum $ map sum freeMap
-                   newMap = zipWith (zipWith (-)) g freeMap
-
-solution2 = countAllFree <$> readInput
--- Solution 2 ends here
+-- ANCHOR: solution2
+solution2 :: IO Integer
+solution2 = countAllFreeable <$> readInput
+-- ANCHOR_END: solution2
