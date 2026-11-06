@@ -8,3 +8,4 @@
 - [Haskell Trick - Recursion](<>)
 - [Day 3 - Lobby](./Day03.md)
 - [Day 4 - Printing Department](./Day04.md)
+- [Day 5 - Cafeteria](./Day05.md)
